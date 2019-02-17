@@ -7,8 +7,8 @@ import (
 )
 
 type IDXData struct {
-	Labels         []int
-	Data           []int
+	Labels         []float64
+	Data           []float64
 	DataDimensions []int
 	file           *os.File
 }
@@ -20,8 +20,9 @@ func (iD *IDXData) ParseLabels(filepath string) (err error) {
 	}
 
 	_, numDimensions, err := iD.parseMagic()
-	_, err = iD.parseDimensions(numDimensions)
-	iD.Labels, err = iD.parseDataBytes(1)
+	dimensions, err := iD.parseDimensions(numDimensions)
+	numDataBytes, err := iD.getNumBytes(dimensions)
+	iD.Labels, err = iD.parseDataBytes(numDataBytes)
 
 	// Clean up file pointer
 	iD.file = nil
@@ -37,7 +38,7 @@ func (iD *IDXData) ParseData(filepath string) (err error) {
 
 	_, numDimensions, err := iD.parseMagic()
 	iD.DataDimensions, err = iD.parseDimensions(numDimensions)
-	numDataBytes, err := iD.getNumBytes()
+	numDataBytes, err := iD.getNumBytes(iD.DataDimensions)
 	iD.Data, err = iD.parseDataBytes(numDataBytes)
 
 	// Clean up file pointer
@@ -72,19 +73,19 @@ func (iD *IDXData) parseDimensions(numDimensions int) (dataDimensions []int, err
 	return
 }
 
-func (iD *IDXData) parseDataBytes(numBytes int) (data []int, err error) {
-	data = make([]int, numBytes)
+func (iD *IDXData) parseDataBytes(numBytes int) (data []float64, err error) {
+	data = make([]float64, numBytes)
 	values := make([]byte, numBytes)
 	iD.file.Read(values)
 	for i, value := range values {
-		data[i] = int(value)
+		data[i] = float64(value)
 	}
 	return
 }
 
-func (iD *IDXData) getNumBytes() (numBytes int, err error) {
+func (iD *IDXData) getNumBytes(DataDimensions []int) (numBytes int, err error) {
 	numBytes = 1
-	for _, dim := range iD.DataDimensions {
+	for _, dim := range DataDimensions {
 		numBytes = numBytes * dim
 	}
 	return
