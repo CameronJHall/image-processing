@@ -1,16 +1,17 @@
 package main
 
 import (
-	"fmt"
-	"github.com/CameronJHall/image-processing/idx"
-	"gonum.org/v1/gonum/mat"
 	"log"
 	"math"
+	"math/rand"
+
+	"github.com/CameronJHall/image-processing/idx"
+	"gonum.org/v1/gonum/mat"
 )
 
 //val toPrint Chan
 
-func main(){
+func main() {
 	labelsFileName := "./train-labels-idx1-ubyte"
 	dataFileName := "./train-images-idx3-ubyte"
 
@@ -22,24 +23,28 @@ func main(){
 		log.Fatal(err)
 	}
 
-	matrices := matrixBuilder(data)
-	ldss := makeLDSets(data.Labels, matrices)
+	m := matrixBuilder(data)
+
+	// ldss := makeLDSets(data.Labels, matrices)
+	net := NNet{}
+	net.Init([]int{784, 16, 10})
+	net.FeedForward(m[0].RowView(0))
 
 	//go pixelgl.Run(run())
 }
 
 func matrixBuilder(data idx.IDXData) (matrices []mat.Matrix) {
-	matSize := data.DataDimensions[1]*data.DataDimensions[2]
-	for i:=0; i<data.DataDimensions[0] ; i++ {
-		v := data.Data[i*matSize: (i+1)*matSize]
-		a := mat.NewDense(data.DataDimensions[1], data.DataDimensions[2], v)
+	matSize := data.DataDimensions[1] * data.DataDimensions[2]
+	for i := 0; i < data.DataDimensions[0]; i++ {
+		v := data.Data[i*matSize : (i+1)*matSize]
+		a := mat.NewDense(matSize, 1, v)
 		matrices = append(matrices, a)
 	}
 	return
 }
 
-func makeLDSets(labels []float64, matrices []mat.Matrix) (ldss []ldSet){
-	for i, m := range matrices{
+func makeLDSets(labels []float64, matrices []mat.Matrix) (ldss []ldSet) {
+	for i, m := range matrices {
 		s := mat.SVD{}
 		s.Factorize(m, mat.SVDNone)
 		val := make([]float64, 28)
@@ -83,7 +88,34 @@ func makeLDSets(labels []float64, matrices []mat.Matrix) (ldss []ldSet){
 //	}
 //}
 
-type ldSet struct{
+type ldSet struct {
 	label float64
 	eVal  []float64
+}
+
+type NNet struct {
+	LayerSizes []int
+	Biases     []float64
+	Weights    [][]float64
+}
+
+func (n *NNet) Init(LayerSizes []int) {
+	n.LayerSizes = LayerSizes
+	n.Biases = make([]float64, len(LayerSizes))
+	n.Weights = make([][]float64, len(LayerSizes))
+	for i, val := range LayerSizes {
+		n.Biases[i] = rand.Float64()
+		n.Weights[i] = make([]float64, val)
+		for j := 0; j < val; j++ {
+			n.Weights[i][j] = rand.Float64()
+		}
+	}
+}
+
+func Sigmoid(x float64) float64 {
+	return 1 / (1 + math.Pow(math.E, -x))
+}
+
+func (n *NNet) FeedForward(v mat.Vector) mat.Matrix {
+
 }
